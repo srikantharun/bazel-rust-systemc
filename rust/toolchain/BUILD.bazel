@@ -1,0 +1,31 @@
+load("@rules_rust//rust:defs.bzl", "rust_toolchain")
+
+filegroup(
+    name = "thumbv7em_linker_script",
+    srcs = ["memory.x"],
+    visibility = ["//visibility:public"],
+)
+
+rust_toolchain(
+    name = "thumbv7em_toolchain_impl",
+    binary_ext = "",
+    dylib_ext = ".so",
+    exec_triple = "x86_64-apple-darwin",
+    target_triple = "thumbv7em-none-eabihf",
+    staticlib_ext = ".a",
+    stdlib_linkflags = ["-static"],
+    visibility = ["//visibility:public"],
+)
+
+toolchain(
+    name = "thumbv7em_toolchain",
+    exec_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:osx",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:armv7e-m",
+    ],
+    toolchain = ":thumbv7em_toolchain_impl",
+    toolchain_type = "@rules_rust//rust:toolchain",
+)

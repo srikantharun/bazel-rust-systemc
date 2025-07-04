@@ -1,0 +1,18 @@
+cc_library(
+    name = "peripheral_model",
+    srcs = ["peripheral_model.cpp"],
+    hdrs = ["peripheral_model.h"],
+    copts = ["-std=c++14"],
+    deps = ["@systemc//:systemc"],
+)
+
+cc_binary(
+    name = "testbench",
+    srcs = ["testbench.cpp"],
+    copts = ["-std=c++14"],
+    deps = [
+        ":peripheral_model",
+        "@systemc//:systemc",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,18 @@
+cc_library(
+    name = "machine_config",
+    srcs = ["machine_config.c"],
+    copts = [
+        "-I/usr/local/include/qemu",
+        "-DNEED_CPU_H",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "run_qemu",
+    srcs = ["run_qemu.sh"],
+    data = [
+        "//firmware:firmware",
+    ],
+    visibility = ["//visibility:public"],
+)

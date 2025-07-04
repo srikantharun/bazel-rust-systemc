@@ -1,0 +1,23 @@
+package(default_visibility = ["//visibility:public"])
+
+platform(
+    name = "thumbv7em",
+    constraint_values = [
+        "@platforms//cpu:armv7e-m",
+        "//:cortex_m4",
+    ],
+    exec_properties = {
+        "target_triple": "thumbv7em-none-eabihf",
+    },
+)
+
+platform(
+    name = "riscv32",
+    constraint_values = [
+        "@platforms//cpu:riscv32",
+        "//:riscv32",
+    ],
+    exec_properties = {
+        "target_triple": "riscv32imac-unknown-none-elf",
+    },
+)

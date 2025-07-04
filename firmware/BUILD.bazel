@@ -1,0 +1,28 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@firmware_deps//:defs.bzl", "all_crate_deps")
+
+rust_binary(
+    name = "firmware",
+    srcs = glob(["src/**/*.rs"]),
+    edition = "2021",
+    deps = all_crate_deps(),
+    rustc_flags = [
+        "--target=thumbv7em-none-eabihf",
+        "-C", "link-arg=-Tlink.x",
+    ],
+    crate_features = ["cortex-m-target"],
+    visibility = ["//visibility:public"],
+)
+
+rust_binary(
+    name = "firmware_riscv",
+    srcs = glob(["src/**/*.rs"]),
+    edition = "2021",
+    deps = all_crate_deps(),
+    rustc_flags = [
+        "--target=riscv32imac-unknown-none-elf",
+        "-C", "link-arg=-Tlink.x",
+    ],
+    crate_features = ["riscv-target"],
+    visibility = ["//visibility:public"],
+)

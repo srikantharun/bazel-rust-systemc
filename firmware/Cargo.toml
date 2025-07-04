@@ -1,0 +1,38 @@
+[package]
+name = "rust-firmware"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+nb = "1.0"
+heapless = "0.8"
+embedded-hal = "0.2"
+defmt = "0.3"
+defmt-rtt = "0.4"
+fugit = "0.3"
+riscv = "0.10"
+riscv-rt = "0.7"
+
+[dependencies.stm32f4xx-hal]
+version = "0.20"
+features = ["stm32f401"]
+optional = true
+
+[features]
+default = ["cortex-m-target"]
+cortex-m-target = ["stm32f4xx-hal"]
+riscv-target = []
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = "s"
+debug = true
+panic = "abort"
