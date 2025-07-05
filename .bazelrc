@@ -1,0 +1,41 @@
+# Bazel configuration for RTL + Rust-SystemC builds
+
+# Common settings
+build --cxxopt=-std=c++17
+build --host_cxxopt=-std=c++17
+
+# RTL compilation settings
+build:rtl --define=rtl_synthesis=true
+build:rtl --define=rtl_lint=true
+build:rtl --action_env=YOSYS_PATH=/usr/local/bin/yosys
+build:rtl --action_env=IVERILOG_PATH=/usr/local/bin/iverilog
+
+# Memory-intensive builds
+build:mem --local_ram_resources=HOST_RAM*.8
+build:mem --jobs=32
+build:mem --experimental_remote_cache_async
+
+# Distributed build for large arrays
+build:distributed --config=mem
+build:distributed --remote_executor=grpc://remote.example.com:8980
+build:distributed --remote_cache=grpc://cache.example.com:8981
+
+# Debug builds
+build:debug --compilation_mode=dbg
+build:debug --define=enable_debug=true
+build:debug --define=enable_logs=true
+
+# Release builds
+build:release --compilation_mode=opt
+build:release --define=enable_debug=false
+build:release --define=enable_logs=false
+
+# Test settings
+test --test_output=errors
+test --test_verbose_timeout_warnings
+
+# CI settings
+build:ci --config=release
+build:ci --config=rtl
+build:ci --remote_cache=https://cache.example.com
+build:ci --remote_upload_local_results=true

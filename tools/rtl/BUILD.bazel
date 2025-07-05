@@ -1,0 +1,29 @@
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
+package(default_visibility = ["//visibility:public"])
+
+# RTL Toolchain definition
+toolchain_type(name = "rtl_toolchain_type")
+
+toolchain(
+    name = "rtl_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    toolchain = ":rtl_toolchain_impl",
+    toolchain_type = ":rtl_toolchain_type",
+)
+
+filegroup(
+    name = "rtl_toolchain_impl",
+    srcs = [
+        "@rtl_tools//:iverilog",
+        "@rtl_tools//:yosys",
+        "@rtl_tools//:jinja_gen",
+    ],
+)

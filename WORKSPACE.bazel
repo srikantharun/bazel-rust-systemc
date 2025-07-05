@@ -60,3 +60,52 @@ http_archive(
         "https://github.com/bazelbuild/platforms/releases/download/0.0.8/platforms-0.0.8.tar.gz",
     ],
 )
+
+# RTL Tools Configuration
+# Register RTL toolchain
+register_toolchains("//tools/rtl:rtl_toolchain")
+
+# RTL tool dependencies
+new_local_repository(
+    name = "rtl_tools",
+    path = "/usr/local/rtl_tools",  # Adjust to your RTL tools location
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+
+# Verilog compiler (using Icarus Verilog as example)
+filegroup(
+    name = "iverilog",
+    srcs = ["bin/iverilog"],
+)
+
+# Synthesis tool (using Yosys as example)
+filegroup(
+    name = "yosys",
+    srcs = ["bin/yosys"],
+)
+
+# Template generator
+py_binary(
+    name = "jinja_gen",
+    srcs = ["bin/jinja_gen.py"],
+    deps = ["@pip_deps//jinja2"],
+)
+"""
+)
+
+# Python dependencies for RTL generation
+load("@rules_python//python:repositories.bzl", "python_register_toolchains", "rules_python_dependencies")
+
+rules_python_dependencies()
+
+python_register_toolchains(
+    name = "python3_11",
+    python_version = "3.11",
+)
+
+load("@rules_python//python:pip.bzl", "pip_parse")
+
+pip_parse(
+    name = "pip_deps",
+    requirements_lock = "//tools/rtl:requirements.txt",
+)

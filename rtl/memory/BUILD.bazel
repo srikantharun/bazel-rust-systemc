@@ -1,0 +1,73 @@
+load("//tools/rtl:rtl_rules.bzl", "rtl_library", "rtl_macro_gen", "memory_array")
+
+package(default_visibility = ["//visibility:public"])
+
+# Example: Building a 256x256 edge AI memory array
+memory_array(
+    name = "edge_ai_array",
+    size = "256x256",
+    cell_type = "rram",
+    precision = "int4",
+    power_mode = "ultra_low",
+    tags = ["edge", "low_power"],
+)
+
+# Example: Building a 1024x1024 datacenter inference array
+memory_array(
+    name = "datacenter_array",
+    size = "1024x1024",
+    cell_type = "sram",
+    precision = "int8",
+    power_mode = "performance",
+    synthesize = True,
+    target_library = "tsmc_7nm",
+    tags = ["datacenter", "high_performance"],
+)
+
+# Individual components for custom builds
+rtl_library(
+    name = "imc_cell_base",
+    srcs = ["cells/imc_cell_base.v"],
+)
+
+rtl_macro_gen(
+    name = "generated_arrays",
+    template = "templates/cell_array.v.jinja2",
+    outputs = [
+        "gen/array_8x8.v",
+        "gen/array_16x16.v",
+        "gen/array_32x32.v",
+        "gen/array_64x64.v",
+    ],
+)
+
+rtl_library(
+    name = "tile_64x64",
+    srcs = [":generated_arrays"],
+    deps = [":imc_cell_base"],
+)
+
+rtl_library(
+    name = "bank_controller",
+    srcs = ["controllers/bank_controller.v"],
+)
+
+rtl_library(
+    name = "bank_256x256",
+    srcs = ["bank.v"],
+    deps = [
+        ":tile_64x64",
+        ":bank_controller",
+    ],
+)
+
+# Integration with SystemC testbench
+cc_library(
+    name = "memory_sc_wrapper",
+    srcs = ["systemc/memory_wrapper.cpp"],
+    hdrs = ["systemc/memory_wrapper.h"],
+    deps = [
+        "@systemc//:systemc",
+        "//rust_bindings:memory_interface",
+    ],
+)

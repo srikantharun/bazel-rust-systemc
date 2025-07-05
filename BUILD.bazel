@@ -1,5 +1,7 @@
 # Root build file
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+load("//tools/rtl:rtl_rules.bzl", "rtl_library", "memory_array")
 
 # Feature flags
 bool_flag(
@@ -23,4 +25,47 @@ constraint_value(
 constraint_value(
     name = "riscv32",
     constraint_setting = ":mcu",
+)
+
+# Example: Main application combining Rust, SystemC, and RTL
+rust_binary(
+    name = "memory_system_sim",
+    srcs = ["src/main.rs"],
+    deps = [
+        ":memory_controller",
+        "//rtl/memory:memory_sc_wrapper",
+    ],
+)
+
+rust_library(
+    name = "memory_controller",
+    srcs = ["src/memory_controller.rs"],
+    deps = [
+        "@firmware_deps//:systemc",
+    ],
+)
+
+# Example: Complete memory system with RTL and Rust-SystemC co-simulation
+genrule(
+    name = "full_system_sim",
+    srcs = [
+        "//rtl/memory:datacenter_array",
+        ":memory_system_sim",
+    ],
+    outs = ["sim_results.txt"],
+    cmd = """
+        # Run co-simulation
+        $(location :memory_system_sim) \
+            --rtl-netlist=$(location //rtl/memory:datacenter_array) \
+            --output=$@
+    """,
+)
+
+# CI/CD test target
+test_suite(
+    name = "memory_tests",
+    tests = [
+        ":memory_controller_test",
+        "//rtl/memory:rtl_unit_tests",
+    ],
 )

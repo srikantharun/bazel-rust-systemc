@@ -1,0 +1,110 @@
+{# Jinja2 template for generating memory cell arrays #}
+{# Extract dimensions from filename: array_ROWSxCOLS.v #}
+{% set dims = output_name.split('_')[1].split('.')[0].split('x') %}
+{% set rows = dims[0]|int %}
+{% set cols = dims[1]|int %}
+
+module cell_array_{{rows}}x{{cols}} #(
+    parameter DATA_WIDTH = 8,
+    parameter COMPUTE_WIDTH = 16,
+    parameter CELL_TYPE = "SRAM"  // SRAM, RRAM, PCM, MRAM
+)(
+    // Clock and reset
+    input wire clk,
+    input wire rst_n,
+    
+    // Row/Column control
+    input wire [{{rows-1}}:0] row_enable,
+    input wire [{{cols-1}}:0] col_enable,
+    
+    // Write interface
+    input wire write_enable,
+    input wire [{{rows*cols*DATA_WIDTH-1}}:0] write_data,
+    
+    // Compute control
+    input wire compute_enable,
+    input wire [1:0] compute_mode,  // 00: MAC, 01: ADD, 10: SHIFT, 11: XOR
+    
+    // Results
+    output wire [{{cols*COMPUTE_WIDTH-1}}:0] compute_results,
+    output wire compute_valid,
+    
+    // Power management
+    input wire power_gate_enable,
+    input wire [3:0] power_domain
+);
+
+    // Internal signals
+    wire [{{rows-1}}:0][{{cols-1}}:0] cell_enables;
+    wire [{{rows-1}}:0][{{cols-1}}:0][COMPUTE_WIDTH-1:0] cell_results;
+    reg compute_valid_r;
+
+    // Generate cell enable matrix
+    genvar r, c;
+    generate
+        for (r = 0; r < {{rows}}; r = r + 1) begin : row_gen
+            for (c = 0; c < {{cols}}; c = c + 1) begin : col_gen
+                assign cell_enables[r][c] = row_enable[r] & col_enable[c];
+            end
+        end
+    endgenerate
+
+    // Instantiate memory cells
+    generate
+        for (r = 0; r < {{rows}}; r = r + 1) begin : cell_row
+            for (c = 0; c < {{cols}}; c = c + 1) begin : cell_col
+                imc_cell #(
+                    .DATA_WIDTH(DATA_WIDTH),
+                    .COMPUTE_WIDTH(COMPUTE_WIDTH),
+                    .ROW_ADDR(r),
+                    .COL_ADDR(c),
+                    .CELL_TYPE(CELL_TYPE)
+                ) cell_inst (
+                    .clk(clk),
+                    .rst_n(rst_n),
+                    .enable(cell_enables[r][c]),
+                    .write_enable(write_enable),
+                    .write_data(write_data[(r*{{cols}}+c+1)*DATA_WIDTH-1:(r*{{cols}}+c)*DATA_WIDTH]),
+                    .compute_enable(compute_enable),
+                    .compute_mode(compute_mode),
+                    .result(cell_results[r][c]),
+                    .power_gate(power_gate_enable & (power_domain == (r/4)))
+                );
+            end
+        end
+    endgenerate
+
+    // Column-wise accumulation
+    generate
+        for (c = 0; c < {{cols}}; c = c + 1) begin : col_accumulate
+            reg [COMPUTE_WIDTH-1:0] col_sum;
+            
+            always @(posedge clk or negedge rst_n) begin
+                if (!rst_n) begin
+                    col_sum <= {COMPUTE_WIDTH{1'b0}};
+                end else if (compute_enable) begin
+                    col_sum <= {COMPUTE_WIDTH{1'b0}};
+                    for (integer r = 0; r < {{rows}}; r = r + 1) begin
+                        if (row_enable[r]) begin
+                            col_sum <= col_sum + cell_results[r][c];
+                        end
+                    end
+                end
+            end
+            
+            assign compute_results[(c+1)*COMPUTE_WIDTH-1:c*COMPUTE_WIDTH] = col_sum;
+        end
+    endgenerate
+
+    // Valid signal generation
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            compute_valid_r <= 1'b0;
+        end else begin
+            compute_valid_r <= compute_enable;
+        end
+    end
+    
+    assign compute_valid = compute_valid_r;
+
+endmodule
